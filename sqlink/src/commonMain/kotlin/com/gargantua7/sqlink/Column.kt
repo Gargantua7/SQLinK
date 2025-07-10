@@ -9,7 +9,21 @@ sealed interface ExpressionColumn: IColumn, Expression
 @JvmInline
 value class Column(val name: String): StatementColumn, ExpressionColumn {
     override fun toString(): String = name
+}
 
+@JvmInline
+value class TextColumn(val name: String): StatementColumn, ExpressionColumn, ITextExpression {
+    override fun toString(): String = name
+}
+
+@JvmInline
+value class NumberColumn(val name: String): StatementColumn, ExpressionColumn, INumberExpression {
+    override fun toString(): String = name
+}
+
+@JvmInline
+value class EnumColumn<E: Enum<E>>(val name: String): StatementColumn, ExpressionColumn, ITextExpression {
+    override fun toString(): String = name
 }
 
 data class ColumnAlias(val column: IColumn, val alias: Column): StatementColumn {
@@ -25,6 +39,6 @@ data class TableAliasColumn(val alias: String, val column: Column): ExpressionCo
 }
 
 
-inline infix fun Column.AS(alias: Column) = ColumnAlias(this, alias)
+infix fun Column.AS(alias: Column) = ColumnAlias(this, alias)
 
-inline infix fun TableAliasColumn.AS(alias: Column) = ColumnAlias(this, alias)
+infix fun TableAliasColumn.AS(alias: Column) = ColumnAlias(this, alias)

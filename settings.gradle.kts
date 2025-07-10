@@ -1,3 +1,5 @@
+//enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+
 pluginManagement {
     repositories {
         maven("https://mirrors.tencent.com/nexus/repository/gradle-plugins/")
@@ -16,4 +18,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "SQLink"
-include(":library")
+include(":sqlink")
+include("sample")

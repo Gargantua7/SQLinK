@@ -1,21 +1,37 @@
 package com.gargantua7.sqlink
 
+import com.gargantua7.sqlink.builder.SQL
 import kotlin.jvm.JvmInline
 
 sealed interface Expression
 
-sealed interface TextExpression: Expression
+sealed interface ITextExpression: Expression
 
-sealed interface INumberExpression: Expression
+sealed interface IBooleanExpression: Expression
+
+sealed interface INumberExpression: IBooleanExpression
 
 @JvmInline
-value class SQLExpression(val sql: SQL): TextExpression {
+value class SQLExpression(val sql: SQL): ITextExpression {
     override fun toString(): String = sql.sql.removeSuffix("\n")
 }
 
 @JvmInline
-value class StringExpression(val value: String): TextExpression {
+value class StringExpression(val value: String): ITextExpression {
     override fun toString(): String = if (value.startsWith("'") && value.endsWith("'")) value else "'$value'"
+}
+
+@JvmInline
+value class BooleanExpression(val value: String): IBooleanExpression {
+    override fun toString(): String = value
+}
+
+data class AndExpression(val left: IBooleanExpression, val right: IBooleanExpression): IBooleanExpression {
+    override fun toString(): String = "($left) AND ($right)"
+}
+
+data class OrExpression(val left: IBooleanExpression, val right: IBooleanExpression): IBooleanExpression {
+    override fun toString(): String = "($left) OR ($right)"
 }
 
 @JvmInline
@@ -24,12 +40,12 @@ value class NumberExpression(val value: Number): INumberExpression {
 }
 
 @JvmInline
-value class MinusExpression(val express: Expression): INumberExpression {
+value class MinusExpression(val express: INumberExpression): INumberExpression {
     override fun toString(): String = "(-${express})"
 
 }
 
-data class ArithmeticExpression(val left: Expression, val right: Expression, val algorithm: Algorithm): INumberExpression {
+data class ArithmeticExpression(val left: INumberExpression, val right: INumberExpression, val algorithm: Algorithm): INumberExpression {
     override fun toString(): String = "($left ${algorithm.s} $right)"
 
     enum class Algorithm(val s: String) {
@@ -39,7 +55,7 @@ data class ArithmeticExpression(val left: Expression, val right: Expression, val
     }
 }
 
-data class ConcatExpression(val left: Expression, val right: Expression): TextExpression {
+data class ConcatExpression(val left: ITextExpression, val right: ITextExpression): ITextExpression {
     override fun toString(): String = "$left || $right"
 }
 
@@ -54,11 +70,12 @@ data object Else: Expression {
 sealed interface OrderExpression: Expression {
 
     @JvmInline
-    value class Asc(val column: Column): OrderExpression {
+    value class Asc(val column: IColumn): OrderExpression {
         override fun toString(): String = "$column ASC"
     }
+
     @JvmInline
-    value class Desc(val column: Column): OrderExpression {
+    value class Desc(val column: IColumn): OrderExpression {
         override fun toString(): String = "$column DESC"
     }
 
@@ -90,20 +107,25 @@ data class OverExpression(
     } + ")"
 }
 
-sealed class OverRowsType {
-    data object UnboundedPreceding: OverRowsType() {
+sealed interface OverRowsType {
+
+    data object UnboundedPreceding: OverRowsType {
         override fun toString(): String = "UNBOUNDED PRECEDING"
     }
-    data object CurrentRow: OverRowsType() {
+
+    data object CurrentRow: OverRowsType {
         override fun toString(): String = "CURRENT ROW"
     }
-    data object UnboundedFollowing: OverRowsType() {
+
+    data object UnboundedFollowing: OverRowsType {
         override fun toString(): String = "UNBOUNDED FOLLOWING"
     }
-    data class Preceding(val value: Int): OverRowsType() {
+
+    data class Preceding(val value: Int): OverRowsType {
         override fun toString(): String = "$value PRECEDING"
     }
-    data class Following(val value: Int): OverRowsType() {
+
+    data class Following(val value: Int): OverRowsType {
         override fun toString(): String = "$value FOLLOWING"
     }
 }
