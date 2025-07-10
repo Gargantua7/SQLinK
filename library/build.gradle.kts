@@ -8,11 +8,11 @@ plugins {
     alias(libs.plugins.vanniktech.mavenPublish)
 }
 
-group = "io.github.kotlin"
+group = "com.gargantua7"
 version = "1.0.0"
 
 kotlin {
-    jvm()
+
     androidTarget {
         publishLibraryVariants("release")
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
@@ -20,17 +20,21 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
     }
+
+    jvm()
     iosX64()
     iosArm64()
     iosSimulatorArm64()
     linuxX64()
 
     sourceSets {
+
         val commonMain by getting {
             dependencies {
                 //put your multiplatform dependencies here
             }
         }
+
         val commonTest by getting {
             dependencies {
                 implementation(libs.kotlin.test)
@@ -40,11 +44,14 @@ kotlin {
 }
 
 android {
-    namespace = "org.jetbrains.kotlinx.multiplatform.library.template"
+
+    namespace = "com.gargantua7.sqlink"
     compileSdk = libs.versions.android.compileSdk.get().toInt()
+
     defaultConfig {
         minSdk = libs.versions.android.minSdk.get().toInt()
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -52,35 +59,38 @@ android {
 }
 
 mavenPublishing {
+
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
 
     signAllPublications()
 
-    coordinates(group.toString(), "library", version.toString())
+    coordinates(group.toString(), "SQLink", version.toString())
 
     pom {
-        name = "My library"
-        description = "A library."
-        inceptionYear = "2024"
-        url = "https://github.com/kotlin/multiplatform-library-template/"
+        name = "SQLink"
+        description = "SQL dynamic splicing with Kotlin without platform dependency or third-party dependency"
+        inceptionYear = "2025"
+        url = "https://github.com/Gargantua7/SQLink"
+
         licenses {
             license {
-                name = "XXX"
-                url = "YYY"
-                distribution = "ZZZ"
+                name = "Apache-2.0"
+                url = "https://www.apache.org/licenses/LICENSE-2.0"
+                distribution = "repo"
             }
         }
+
         developers {
             developer {
-                id = "XXX"
-                name = "YYY"
-                url = "ZZZ"
+                id = "Gargantua7"
+                url = "https://github.com/Gargantua7"
             }
         }
+
         scm {
-            url = "XXX"
-            connection = "YYY"
-            developerConnection = "ZZZ"
+            url = "https://github.com/Gargantua7/SQLink"
+            connection = "scm:git:https://github.com/Gargantua7/SQLink.git"
+            developerConnection = "scm:git:ssh://git@github.com:Gargantua7/SQLink.git"
         }
     }
 }

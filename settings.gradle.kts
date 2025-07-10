@@ -1,5 +1,6 @@
 pluginManagement {
     repositories {
+        maven("https://mirrors.tencent.com/nexus/repository/gradle-plugins/")
         google()
         mavenCentral()
         gradlePluginPortal()
@@ -8,10 +9,11 @@ pluginManagement {
 
 dependencyResolutionManagement {
     repositories {
+        maven("https://mirrors.tencent.com/nexus/repository/maven-public/")
         google()
         mavenCentral()
     }
 }
 
-rootProject.name = "multiplatform-library-template"
+rootProject.name = "SQLink"
 include(":library")
