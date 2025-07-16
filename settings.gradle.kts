@@ -17,6 +17,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "SQLink"
+rootProject.name = "SQLinK"
 include(":sqlink")
 include("sample")

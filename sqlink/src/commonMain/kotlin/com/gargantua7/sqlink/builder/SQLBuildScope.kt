@@ -4,24 +4,13 @@ import com.gargantua7.sqlink.*
 
 abstract class AbstractSQLBuildScope {
 
-
-    fun table(table: Table): String = table.tableName
-
-    fun <T: Table> table(alias: TableAlias<T>): String = "${alias.table.tableName} ${alias.alias}"
-
     fun table(column: QueryResultSet): String = column.alias
 
-    fun column(column: Column): String = column.name
+    inline operator fun <T: Table> TableAlias<T>.invoke(operation: T.() -> TableColumn) = TableAliasColumn(this, table.operation())
 
-    inline fun <T: Table> column(table: T, block: T.() -> Column) = table.block().name
+    fun real(value: Number): NumberExpression = NumberExpression(value)
 
-    inline fun <T: Table> column(alias: TableAlias<T>, block: T.() -> Column) =
-        TableAliasColumn(alias.alias, alias.table.block())
-
-    fun real(value: Number): NumberExpression =
-        NumberExpression(value)
-
-    fun string(it: Any) = StringExpression(it.toString())
+    fun string(it: Any) = StringExpression(it)
 
     fun <T> collection(collection: Collection<T>) = collection.joinToString(
         separator = ", ",
@@ -34,8 +23,6 @@ abstract class AbstractSQLBuildScope {
         prefix = "(",
         postfix = ")"
     ) { "'$it'" }
-
-    fun tempColumn(name: String) = Column(name)
 
     fun result(name: String) = QueryResultSet(name)
 
@@ -72,104 +59,22 @@ abstract class AbstractSQLBuildScope {
     infix fun IBooleanExpression.and(other: IBooleanExpression) = AndExpression(this, other)
 
     infix fun IBooleanExpression.or(other: IBooleanExpression) = OrExpression(this, other)
-}
 
-@SQLBuilder
-class SQLBuildScope internal constructor(internal val sb: StringBuilder): AbstractSQLBuildScope() {
+    infix fun TableColumn.IN(sql: SQL) = BooleanExpression("$this IN (${sql.sql.trim()})")
 
-    @SQLBuilder
-    fun sql(block: SQLBuildScope.() -> Unit) {
-        sb.append(
-            buildString {
-                block(SQLBuildScope(this))
-            }
-        )
-    }
+    infix fun TableColumn.notIN(sql: SQL) = BooleanExpression("$this NOT IN (${sql.sql.trim()})")
 
-    operator fun String.unaryPlus() {
-        sb.appendLine(this.trim())
-    }
+    infix fun ITextExpression.IN(collection: Collection<String>) = BooleanExpression("$this IN ${collection(collection)}")
 
-    operator fun SQL.unaryPlus() {
-        sb.appendLine(sql.trim())
-    }
+    infix fun ITextExpression.notIN(collection: Collection<String>) = BooleanExpression("$this NOT IN ${collection(collection)}")
 
-    fun select(vararg column: IColumn) = + ("SELECT " + column.joinToString())
+    infix fun INumberExpression.IN(collection: Collection<Number>) = BooleanExpression("$this IN ${collection(collection)}")
 
-    fun select(columns: List<IColumn>) = + ("SELECT " + columns.joinToString())
+    infix fun INumberExpression.notIN(collection: Collection<Number>) = BooleanExpression("$this NOT IN ${collection(collection)}")
 
-    inline fun select(block: SelectScope.() -> Unit) = select(buildList { SelectScope(this).block() })
+    infix fun <E: Enum<E>> EnumColumn<E>.IN(collection: Collection<E>) = BooleanExpression("$this IN ${collection(collection)}")
 
-    fun update(table: Table) = + "UPDATE ${table(table)}"
-
-    fun from(table: Table) = + "FROM ${table(table)}"
-
-    fun from(table: QueryResultSet) = + "FROM ${table(table)}"
-
-    inline fun from(crossinline block: SQLBuildScope.() -> Unit) = sql {
-        + "FROM ("
-        this.block()
-        + ")"
-    }
-
-    fun <T: Table> from(table: TableAlias<T>) = + "FROM ${table(table)}"
-
-    inline fun <T: Table> leftJoin(table: TableAlias<T>, crossinline on: SQLBuildScope.() -> Unit) = sql {
-        + "LEFT JOIN ${table(table)} ON ("
-        on()
-        + ")"
-    }
-
-    inline fun set(crossinline block: UpdateSetScope.() -> Unit) = sql {
-        + ("SET " + (
-                buildList {
-                    UpdateSetScope(this).block()
-                }.joinToString(separator = ", \n") { (column, expression) ->
-                    "$column = $expression"
-                }
-                ))
-
-    }
-
-    fun where(operation: SingleConditionScope.() -> IBooleanExpression) = + ("WHERE " + SingleConditionScope().let(operation))
-
-    fun orderBy(vararg order: OrderExpression) = + ("ORDER BY " + order.joinToString())
-
-    fun groupBy(vararg column: ExpressionColumn) = + ("GROUP BY " + column.joinToString())
-
-    inline fun with(res: QueryResultSet, crossinline block: SQLBuildScope.() -> Unit) =
-        sql {
-            +"WITH ${res.alias} AS ("
-            block()
-            +")"
-        }
-
-    infix fun TableAliasColumn.link(other: TableAliasColumn) = "$this = $other"
-
-    infix fun Expression.AS(alias: Column) =
-        ExpressionColumnAlias(this, alias)
-
-    fun Expression.over(
-        partitionBy: List<ExpressionColumn>? = null,
-        orderBy: List<OrderExpression>? = null,
-        rows: Pair<OverRowsType, OverRowsType?>? = null
-    ) = OverExpression(this, partitionBy, orderBy, rows)
-
-    val IColumn.asc get() = OrderExpression.Asc(this)
-
-    val IColumn.desc get() = OrderExpression.Desc(this)
-}
-
-@SQLBuilder
-open class ConditionScope internal constructor(): AbstractSQLBuildScope() {
-
-    infix fun <T> ExpressionColumn.IN(collection: Collection<T>) = BooleanExpression("$this IN ${collection(collection)}")
-
-    infix fun <T> ExpressionColumn.notIN(collection: Collection<T>) = BooleanExpression("$this NOT IN ${collection(collection)}")
-
-    infix fun ExpressionColumn.IN(sql: SQL) = BooleanExpression("$this IN (${sql.sql.trim()})")
-
-    infix fun ExpressionColumn.notIN(sql: SQL) = BooleanExpression("$this NOT IN (${sql.sql.trim()})")
+    infix fun <E: Enum<E>> EnumColumn<E>.notIN(collection: Collection<E>) = BooleanExpression("$this NOT IN ${collection(collection)}")
 
     infix fun ITextExpression.eq(value: String) = BooleanExpression("$this = ${string(value)}")
 
@@ -203,17 +108,98 @@ open class ConditionScope internal constructor(): AbstractSQLBuildScope() {
 
     infix fun INumberExpression.moreEq(value: INumberExpression) = BooleanExpression("$this >= $value")
 
-    infix fun ExpressionColumn.like(expression: ITextExpression) = BooleanExpression("$this LIKE $expression")
+    infix fun ITextExpression.like(expression: ITextExpression) = BooleanExpression("$this LIKE $expression")
 
-    infix fun ExpressionColumn.like(expression: String) = BooleanExpression("$this LIKE $expression")
+    infix fun ITextExpression.like(expression: String) = BooleanExpression("$this LIKE $expression")
 
-    val ExpressionColumn.isNull get() = BooleanExpression("$this IS NULL")
+    val TableColumn.isNull get() = BooleanExpression("$this IS NULL")
 
-    val ExpressionColumn.isNotNull get() = BooleanExpression("$this IS NOT NULL")
+    val TableColumn.isNotNull get() = BooleanExpression("$this IS NOT NULL")
 }
 
 @SQLBuilder
-class SingleConditionScope internal constructor(): ConditionScope() {
+class SQLBuildScope internal constructor(): AbstractSQLBuildScope() {
+
+    private val sb = StringBuilder()
+
+    internal fun build(): SQL {
+        return SQL(sb.toString())
+    }
+
+    @SQLBuilder
+    fun sql(block: SQLBuildScope.() -> Unit) {
+        sb.append(SQLBuildScope().apply(block).build())
+    }
+
+    operator fun String.unaryPlus() {
+        if (isEmpty()) return
+        sb.appendLine(this.trim())
+    }
+
+    operator fun SQL.unaryPlus() {
+        if (sql.isEmpty()) return
+        sb.appendLine(sql.trim())
+    }
+
+    fun select(vararg column: Selectable) = + ("SELECT " + column.joinToString())
+
+    fun select(columns: List<Selectable>) = + ("SELECT " + columns.joinToString())
+
+    fun from(table: Table) = + "FROM $table"
+
+    fun from(table: QueryResultSet) = + "FROM ${table(table)}"
+
+    inline fun from(crossinline block: SQLBuildScope.() -> Unit) = sql {
+        + "FROM ("
+        this.block()
+        + ")"
+    }
+
+    fun <T: Table> from(table: TableAlias<T>) = + "FROM ${table.table} ${table.alias}"
+
+    fun <T: Table> leftJoin(table: TableAlias<T>, on: SingleConditionScope.() -> IBooleanExpression) = sql {
+        + "LEFT JOIN ${table.table} ${table.alias} ON ("
+        + SingleConditionScope().let(on).toString()
+        + ")"
+    }
+
+    fun <T: Table> update(table: T, set: UpdateSetScope.(T) -> Unit) {
+        + "UPDATE $table"
+        + UpdateSetScope().apply { set(table) }.build()
+    }
+
+    fun <T: Table> delete(table: T) = + "DELETE $table"
+
+    fun where(operation: SingleConditionScope.() -> IBooleanExpression) = + ("WHERE " + SingleConditionScope().let(operation))
+
+    val union: Unit get() = + "UNION"
+    val unionAll: Unit get() = + "UNION ALL"
+
+    fun orderBy(vararg order: OrderExpression) = + ("ORDER BY " + order.joinToString())
+
+    fun groupBy(vararg column: TableColumn) = + ("GROUP BY " + column.joinToString())
+
+    inline fun with(res: QueryResultSet, crossinline block: SQLBuildScope.() -> Unit) = sql {
+            +"WITH ${res.alias} AS ("
+            block()
+            +")"
+        }
+
+    infix fun TableAliasColumn.link(other: TableAliasColumn) = "$this = $other"
+
+    fun Expression.over(
+        partitionBy: List<TableColumn>? = null,
+        orderBy: List<OrderExpression>? = null,
+        rows: Pair<OverRowsType, OverRowsType?>? = null
+    ) = OverExpression(this, partitionBy, orderBy, rows)
+
+    val Column.asc get() = OrderExpression.Asc(this)
+
+    val Column.desc get() = OrderExpression.Desc(this)
+}
+
+@SQLBuilder
+class SingleConditionScope internal constructor(): AbstractSQLBuildScope() {
 
     @SQLBuilder
     fun and(operation: MultiConditionScope.() -> Unit) = MultiConditionScope()
@@ -227,7 +213,7 @@ class SingleConditionScope internal constructor(): ConditionScope() {
 }
 
 @SQLBuilder
-class MultiConditionScope internal constructor(): ConditionScope() {
+class MultiConditionScope internal constructor(): AbstractSQLBuildScope() {
     private val list: MutableList<IBooleanExpression> = ArrayList()
 
     @SQLBuilder
@@ -248,47 +234,46 @@ class MultiConditionScope internal constructor(): ConditionScope() {
         list.reduce(builder)
 }
 
-@SQLBuilder
-class SelectScope(private val list: MutableList<IColumn>) {
+class UpdateSetScope internal constructor() {
 
-    operator fun IColumn.unaryPlus() {
-        list.add(this)
+    private val map = LinkedHashMap<Column, Expression>()
+
+    infix fun TableColumn.set(expression: Nothing?) {
+        map[this] = Null
     }
 
-    infix fun Expression.AS(alias: Column) =
-        ExpressionColumnAlias(this, alias)
+    infix fun NumberColumn.set(expression: INumberExpression) {
+        map[this] = expression
+    }
 
-        fun Expression.over(
-            partitionBy: List<ExpressionColumn>? = null,
-            orderBy: List<OrderExpression>? = null,
-            rows: Pair<OverRowsType, OverRowsType?>? = null
-        ) = OverExpression(this, partitionBy, orderBy, rows)
+    infix fun NumberColumn.set(expression: Number) {
+        map[this] = NumberExpression(expression)
+    }
 
-}
+    infix fun TextColumn.set(expression: ITextExpression) {
+        map[this] = expression
+    }
 
-class UpdateSetScope(private val list: MutableList<Pair<Column, Expression>>) {
+    infix fun TextColumn.set(expression: String) {
+        map[this] = StringExpression(expression)
+    }
 
-    operator fun set(column: Column, expression: Any?) {
-        when(expression) {
-            null -> list.add(column to Null)
-            is SQL -> list.add(column to SQLExpression(expression))
-            is Number -> list.add(column to NumberExpression(expression))
-            is String -> list.add(column to StringExpression(expression))
-            is Expression -> list.add(column to expression)
-            else -> list.add(column to StringExpression(expression.toString()))
-        }
+    infix fun <E: Enum<E>> EnumColumn<E>.set(value: E) {
+        map[this] = StringExpression(value.name)
+    }
+
+    internal fun build(): SQL {
+        if (map.isEmpty()) return SQL("")
+        return SQL(
+            "SET " + map.entries.joinToString { (column, expression) ->
+                "$column = $expression"
+            }
+        )
     }
 
 }
 
 @SQLBuilder
 fun sql(block: SQLBuildScope.() -> Unit): SQL {
-
-    return SQL(buildString {
-        block(SQLBuildScope(this))
-    })
-}
-
-infix fun SQL.union(other: SQL): SQL {
-    return SQL(sql + "UNION\n" + other.sql)
+    return SQLBuildScope().apply(block).build()
 }

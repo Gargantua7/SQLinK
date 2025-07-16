@@ -1,14 +1,18 @@
 package com.gargantua7.sqlink
 
-import com.gargantua7.sqlink.builder.TableAlias
-
 abstract class Table(val tableName: String) {
 
     companion object {
-        val all = Column("*")
+        val all = AllColumn
     }
 
     val all = Table.all
+
+    override fun toString() = tableName
+}
+
+data class TableAlias<T: Table>(val table: T, val alias: String): Table(alias) {
+    override fun toString() = super.toString()
 }
 
 fun Table.number(name: String) = NumberColumn(name)

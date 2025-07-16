@@ -1,9 +1,8 @@
 package com.gargantua7.sqlink
 
-import com.gargantua7.sqlink.builder.SQL
 import kotlin.jvm.JvmInline
 
-sealed interface Expression
+sealed interface Expression: Selectable
 
 sealed interface ITextExpression: Expression
 
@@ -12,12 +11,10 @@ sealed interface IBooleanExpression: Expression
 sealed interface INumberExpression: IBooleanExpression
 
 @JvmInline
-value class SQLExpression(val sql: SQL): ITextExpression {
-    override fun toString(): String = sql.sql.removeSuffix("\n")
-}
-
-@JvmInline
 value class StringExpression(val value: String): ITextExpression {
+
+    constructor(value: Any): this(value.toString())
+
     override fun toString(): String = if (value.startsWith("'") && value.endsWith("'")) value else "'$value'"
 }
 
@@ -70,12 +67,12 @@ data object Else: Expression {
 sealed interface OrderExpression: Expression {
 
     @JvmInline
-    value class Asc(val column: IColumn): OrderExpression {
+    value class Asc(val column: Column): OrderExpression {
         override fun toString(): String = "$column ASC"
     }
 
     @JvmInline
-    value class Desc(val column: IColumn): OrderExpression {
+    value class Desc(val column: Column): OrderExpression {
         override fun toString(): String = "$column DESC"
     }
 
@@ -83,18 +80,18 @@ sealed interface OrderExpression: Expression {
 
 data class OverExpression(
     val column: Expression,
-    val partitionBy: List<ExpressionColumn>? = null,
+    val partitionBy: List<TableColumn>? = null,
     val orderBy: List<OrderExpression>? = null,
     val rows: Pair<OverRowsType, OverRowsType?>? = null,
 ): Expression {
     override fun toString(): String = "$column OVER (" + buildString {
         if (partitionBy != null) {
             append("PARTITION BY ")
-            append(partitionBy.joinToString { it.toString() })
+            append(partitionBy.joinToString())
         }
         if (orderBy != null) {
             append(" ORDER BY ")
-            append(orderBy.joinToString { it.toString() })
+            append(orderBy.joinToString())
         }
         if (rows != null) {
             append(" ROWS BETWEEN ")

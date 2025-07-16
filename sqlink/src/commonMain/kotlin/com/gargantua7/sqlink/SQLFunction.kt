@@ -8,21 +8,26 @@ abstract class SQLFunction: Expression {
     abstract val args: List<Expression>
 
     override fun toString(): String = "$method(${args.joinToString(", ")})"
+
+    val asNumber get() = SQLFunctionReturnNumber(method, args)
+
+    val asText get() = SQLFunctionReturnText(method, args)
 }
 
 data class SQLFunctionReturnNumber(override val method: String, override val args: List<Expression>): SQLFunction(), INumberExpression {
     constructor(method: String, vararg args: Expression): this(method, args.toList())
+    override fun toString(): String = super<SQLFunction>.toString()
 }
 
-data class SQLFunctionReturnText(override val method: String, override val args: List<Expression>): SQLFunction(), INumberExpression {
+data class SQLFunctionReturnText(override val method: String, override val args: List<Expression>): SQLFunction(), ITextExpression {
     constructor(method: String, vararg args: Expression): this(method, args.toList())
-
-    val asNumber get() = SQLFunctionReturnNumber(method, args)
+    override fun toString(): String = super<SQLFunction>.toString()
 }
 
 
 data class SQLFunctionReturnExpression(override val method: String, override val args: List<Expression>): SQLFunction(), Expression {
     constructor(method: String, vararg args: Expression): this(method, args.toList())
+    override fun toString(): String = super<SQLFunction>.toString()
 }
 
 fun SQLBuildScope.max(column: INumberExpression) = SQLFunctionReturnNumber("MAX", listOf(column))
