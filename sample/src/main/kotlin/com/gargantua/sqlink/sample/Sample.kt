@@ -117,4 +117,16 @@ fun main() {
         }
     }.let(::println)
 
+    sql {
+
+        select(
+            case(Person.gender) {
+                WHEN(Gender.MALE, string("M"))
+                WHEN(Gender.FEMALE, string("F"))
+            } AS "gender_code"
+        )
+        from(Person)
+
+    }.let(::println)
+
 }

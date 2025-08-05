@@ -175,7 +175,7 @@ class SQLBuildScope internal constructor(): AbstractSQLBuildScope() {
     val union: Unit get() = + "UNION"
     val unionAll: Unit get() = + "UNION ALL"
 
-    fun orderBy(vararg order: OrderExpression) = + ("ORDER BY " + order.joinToString())
+    fun orderBy(vararg order: Order) = + ("ORDER BY " + order.joinToString())
 
     fun groupBy(vararg column: TableColumn) = + ("GROUP BY " + column.joinToString())
 
@@ -189,13 +189,17 @@ class SQLBuildScope internal constructor(): AbstractSQLBuildScope() {
 
     fun Expression.over(
         partitionBy: List<TableColumn>? = null,
-        orderBy: List<OrderExpression>? = null,
+        orderBy: List<Order>? = null,
         rows: Pair<OverRowsType, OverRowsType?>? = null
     ) = OverExpression(this, partitionBy, orderBy, rows)
 
-    val Column.asc get() = OrderExpression.Asc(this)
+    val Column.asc get() = Order.Asc(this)
 
-    val Column.desc get() = OrderExpression.Desc(this)
+    val Column.desc get() = Order.Desc(this)
+
+    fun case(builder: BooleanCaseScope.() -> Unit) = BooleanCaseScope().apply(builder).build()
+    fun case(expression: INumberExpression, builder: NumberCaseScope.() -> Unit) = NumberCaseScope(expression).apply(builder).build()
+    fun case(expression: ITextExpression, builder: TextCaseScope.() -> Unit) = TextCaseScope(expression).apply(builder).build()
 }
 
 @SQLBuilder
@@ -259,7 +263,7 @@ class UpdateSetScope internal constructor() {
     }
 
     infix fun <E: Enum<E>> EnumColumn<E>.set(value: E) {
-        map[this] = StringExpression(value.name)
+        map[this] = StringExpression(value)
     }
 
     internal fun build(): SQL {
@@ -271,6 +275,62 @@ class UpdateSetScope internal constructor() {
         )
     }
 
+}
+
+@SQLBuilder
+sealed class CaseScope(private val expression: Expression? = null): AbstractSQLBuildScope() {
+
+    protected val branches = mutableListOf<CaseExpression.Branch>()
+    protected var elseBranch: Expression? = null
+
+
+    protected fun WHEN(expression: Expression, result: Expression) {
+        branches.add(CaseExpression.Branch(expression, result))
+    }
+
+    fun ELSE(result: Expression) {
+        elseBranch = result
+    }
+
+    internal fun build() = CaseExpression(expression, branches, elseBranch)
+
+}
+
+@SQLBuilder
+class BooleanCaseScope internal constructor(): CaseScope() {
+
+    fun WHEN(expression: IBooleanExpression, result: Expression) {
+        super.WHEN(expression, result)
+    }
+
+}
+
+@SQLBuilder
+class NumberCaseScope internal constructor(expression: INumberExpression): CaseScope(expression) {
+
+    fun WHEN(expression: INumberExpression, result: Expression) {
+        super.WHEN(expression, result)
+    }
+
+    fun WHEN(expression: Number, result: Expression) {
+        super.WHEN(NumberExpression(expression), result)
+    }
+}
+
+@SQLBuilder
+class TextCaseScope internal constructor(expression: ITextExpression): CaseScope(expression) {
+
+    fun WHEN(expression: ITextExpression, result: Expression) {
+        super.WHEN(expression, result)
+    }
+
+    fun WHEN(expression: String, result: Expression) {
+        super.WHEN(StringExpression(expression), result)
+    }
+
+    fun <E: Enum<E>> WHEN(expression: E, result: Expression) {
+        super.WHEN(StringExpression(expression), result)
+    }
 }
 
 @SQLBuilder

@@ -14,6 +14,7 @@ sealed interface INumberExpression: IBooleanExpression
 value class StringExpression(val value: String): ITextExpression {
 
     constructor(value: Any): this(value.toString())
+    constructor(value: Enum<*>): this(value.name)
 
     override fun toString(): String = if (value.startsWith("'") && value.endsWith("'")) value else "'$value'"
 }
@@ -60,19 +61,15 @@ data object Null: Expression {
     override fun toString() = "NULL"
 }
 
-data object Else: Expression {
-    override fun toString() = "ELSE"
-}
-
-sealed interface OrderExpression: Expression {
+sealed interface Order {
 
     @JvmInline
-    value class Asc(val column: Column): OrderExpression {
+    value class Asc(val column: Column): Order {
         override fun toString(): String = "$column ASC"
     }
 
     @JvmInline
-    value class Desc(val column: Column): OrderExpression {
+    value class Desc(val column: Column): Order {
         override fun toString(): String = "$column DESC"
     }
 
@@ -81,7 +78,7 @@ sealed interface OrderExpression: Expression {
 data class OverExpression(
     val column: Expression,
     val partitionBy: List<TableColumn>? = null,
-    val orderBy: List<OrderExpression>? = null,
+    val orderBy: List<Order>? = null,
     val rows: Pair<OverRowsType, OverRowsType?>? = null,
 ): Expression {
     override fun toString(): String = "$column OVER (" + buildString {
@@ -125,4 +122,20 @@ sealed interface OverRowsType {
     data class Following(val value: Int): OverRowsType {
         override fun toString(): String = "$value FOLLOWING"
     }
+}
+
+data class CaseExpression(
+    val expression: Expression? = null,
+    val branches: List<Branch> = emptyList(),
+    val elseBranch: Expression? = null
+): Expression {
+
+    override fun toString() = "CASE $expression\n" +
+            branches.joinToString(separator = "\n", postfix = "\n") { (expression, result) ->
+                "WHEN $expression THEN $result"
+            } +
+            elseBranch?.let { "ELSE $it\n"}.orEmpty() +
+            "END"
+
+    data class Branch(val expression: Expression, val result: Expression)
 }
