@@ -1,4 +1,4 @@
-import com.vanniktech.maven.publish.SonatypeHost
+
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -22,10 +22,19 @@ kotlin {
     }
 
     jvm()
+    linuxX64()
+
+    macosX64()
+    macosArm64()
     iosX64()
     iosArm64()
     iosSimulatorArm64()
-    linuxX64()
+    tvosX64()
+    tvosArm64()
+    tvosSimulatorArm64()
+    watchosX64()
+    watchosArm64()
+    watchosSimulatorArm64()
 
     sourceSets {
 
@@ -52,17 +61,17 @@ android {
 
 mavenPublishing {
 
-    publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
+    publishToMavenCentral()
 
     signAllPublications()
 
-    coordinates(group.toString(), "SQLink", version.toString())
+    coordinates(group.toString(), "SQLinK", version.toString())
 
     pom {
-        name = "SQLink"
-        description = "SQL dynamic splicing with Kotlin without platform dependency or third-party dependency"
+        name = "SQLinK"
+        description = "SQL dynamic splicing with Kotlin DSL without platform dependency or third-party dependency"
         inceptionYear = "2025"
-        url = "https://github.com/Gargantua7/SQLink"
+        url = "https://github.com/Gargantua7/SQLinK"
 
         licenses {
             license {
@@ -76,13 +85,14 @@ mavenPublishing {
             developer {
                 id = "Gargantua7"
                 url = "https://github.com/Gargantua7"
+                email = "gargantua7@qq.com"
             }
         }
 
         scm {
-            url = "https://github.com/Gargantua7/SQLink"
-            connection = "scm:git:https://github.com/Gargantua7/SQLink.git"
-            developerConnection = "scm:git:ssh://git@github.com:Gargantua7/SQLink.git"
+            url = "https://github.com/Gargantua7/SQLinK"
+            connection = "scm:git:https://github.com/Gargantua7/SQLinK.git"
+            developerConnection = "scm:git:ssh://git@github.com:Gargantua7/SQLinK.git"
         }
     }
 }
