@@ -8,7 +8,7 @@ plugins {
     alias(libs.plugins.vanniktech.mavenPublish)
 }
 
-group = "com.gargantua7"
+group = "com.gargantua7.sqlink"
 version = "1.0.0"
 
 kotlin {
@@ -65,7 +65,7 @@ mavenPublishing {
 
     signAllPublications()
 
-    coordinates(group.toString(), "SQLinK", version.toString())
+    coordinates(group.toString(), "sqlink", version.toString())
 
     pom {
         name = "SQLinK"

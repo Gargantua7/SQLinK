@@ -22,7 +22,7 @@ To use SQLinK in your Kotlin project, add the following dependency to your `buil
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation("com.gargantua:sqlink:1.0.0")
+            implementation("com.gargantua.sqlink:sqlink:1.0.0")
         }
     }
 }
